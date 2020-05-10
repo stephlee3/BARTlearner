@@ -26,7 +26,7 @@ We wrapped up several meta algorithms into some built-in functions:  `T_learner`
 ```
 T_learner = function(X, z, y, ndpost = 200, seed = 1)
 ```
-Your input is `X` matrix of baseline covariates , $z$ vector of treatment assignment, $y$ vector of outcome, `ndpost` the number of posterior draws after burn in, `seed` the random seed. Your output is `tau.pred.mat` the matrix of posterior sampling for treatment effect estimation (each row is a posterior draw, each column is an observation) and `tau.pred` the vector of means of posterior sampling matrix.
+Your input is `X` matrix of baseline covariates , `z` vector of treatment assignment, `y` vector of outcome, `ndpost` the number of posterior draws after burn in, `seed` the random seed. Your output is `tau.pred.mat` the matrix of posterior sampling for treatment effect estimation (each row is a posterior draw, each column is an observation) and `tau.pred` the vector of means of posterior sampling matrix.
 
 
 ## Evaluation
