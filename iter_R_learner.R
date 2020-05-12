@@ -1,9 +1,9 @@
 ## iterative R_learner
-iter_R_learner = function(X, z, y, ndpost = 500, seed = 10, niter = 10){
+iter_R_learner = function(X, z, y, ndpost = 500, seed = 10, niter = 25){
   
   set.seed(seed)
   
-  ## propensity score
+  ## propensity score 
   ps_bart = dbarts::bart(X,z,ndpost = ndpost,keeptrees=T)
   ps.pred = pnorm(as.vector((ps_bart$yhat.train)[ndpost,]))
   

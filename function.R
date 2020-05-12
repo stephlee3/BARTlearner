@@ -61,9 +61,10 @@ S_learner = function(X, z, y, ndpost = 200, seed = 1){
 ## X learner
 X_learner = function(X, z, y, ndpost = 500, seed = 1){
   set.seed(seed)
+  # ps.pred = dat$e
   dat = data.frame(X,z,y)
   
-  ## propensity score
+  # propensity score
   ps_bart = dbarts::bart(X,z,ndpost = ndpost,keeptrees=T)
   ps.pred = pnorm(as.vector((ps_bart$yhat.train)[ndpost,]))
   
@@ -102,17 +103,30 @@ X_learner = function(X, z, y, ndpost = 500, seed = 1){
 
 
 ## R_learner
-R_learner = function(X, z, y, ndpost = 500, seed = 1){
+R_learner = function(X, z, y, ndpost = 500, seed = 1, fold = 10){
   
   set.seed(seed)
   
-  ## propensity score
-  ps_bart = dbarts::bart(X,z,ndpost = ndpost,keeptrees=T)
-  ps.pred = pnorm(as.vector((ps_bart$yhat.train)[ndpost,]))
-  
-  m_bart = dbarts::bart(X,y,ndpost = ndpost,keeptrees = T)
-  m.pred = m_bart$yhat.train.mean
-  
+  ## propensity score and mean (10 fold)
+  ps.pred = rep(NA, nrow(X)); m.pred = rep(NA, nrow(X))
+  if(fold > 0){
+    randnum = sample(nrow(X)) / nrow(X)
+    for(i in 1:fold){
+      ind = (randnum <= i/fold) & (randnum > (i-1)/fold)
+      ps_bart = dbarts::bart(X[!ind,],z[!ind],ndpost = ndpost,keeptrees=T)
+      m_bart = dbarts::bart(X[!ind,],y[!ind],ndpost = ndpost,keeptrees = T)
+      ps.pred[ind] = predict(ps_bart, X[ind,], type = "ev")[ndpost,]
+      m.pred[ind] = predict(m_bart, X[ind,], type = "ev")[ndpost,]
+    }  
+  }
+  else{
+    ps_bart = dbarts::bart(X,z,ndpost = ndpost,keeptrees=T)
+    ps.pred = pnorm(as.vector((ps_bart$yhat.train)[ndpost,]))
+    
+    m_bart = dbarts::bart(X,y,ndpost = ndpost,keeptrees = T)
+    m.pred = m_bart$yhat.train.mean
+  }
+    
   transform_y = (y-m.pred)/(z-ps.pred)
   oracle_bart = dbarts::bart(X,transform_y, weights = (z-ps.pred)^2,
                              ndpost = ndpost, keeptrees = T)
@@ -162,7 +176,8 @@ DR_learner = function(X, z, y, ndpost = 500, seed = 1){
 tau.T = T_learner(input_2016,dat$z,dat$y)
 tau.S = S_learner(input_2016,dat$z,dat$y)
 tau.X = X_learner(input_2016,dat$z,dat$y)
-tau.R = R_learner(input_2016,dat$z,dat$y)
+tau.R = R_learner(input_2016,dat$z,dat$y, fold = 0)
+tau.R.fold = R_learner(input_2016,dat$z,dat$y, fold = 10)
 tau.DR = DR_learner(input_2016,dat$z,dat$y)
 
 ## Evaluation
@@ -200,31 +215,35 @@ mse.T = mse(tau.true, tau.T$tau.pred)
 mse.S = mse(tau.true, tau.S$tau.pred)
 mse.X = mse(tau.true, tau.X$tau.pred)
 mse.R = mse(tau.true, tau.R$tau.pred)
+mse.R.fold = mse(tau.true, tau.R.fold$tau.pred)
 mse.DR = mse(tau.true, tau.DR$tau.pred)
 
 CI.T = CI_eval(tau.T$tau.pred.mat)
 CI.S = CI_eval(tau.S$tau.pred.mat)
 CI.X = CI_eval(tau.X$tau.pred.mat)
 CI.R = CI_eval(tau.R$tau.pred.mat)
+CI.R.fold = CI_eval(tau.R.fold$tau.pred.mat)
 CI.DR = CI_eval(tau.DR$tau.pred.mat)
 
 model_eval = data.frame(
-  MSE = c(mse.T, mse.S, mse.X,mse.R,mse.DR),
-  interval_length = c(CI.T$len,CI.S$len,CI.X$len,CI.R$len,CI.DR$len),
-  cover_indicator = c(CI.T$cover,CI.S$cover,CI.X$cover,CI.R$cover,CI.DR$cover)
+  MSE = c(mse.T, mse.S, mse.X,mse.R,mse.DR,mse.R.fold),
+  interval_length = c(CI.T$len,CI.S$len,CI.X$len,CI.R$len,CI.DR$len,CI.R.fold$len),
+  cover_indicator = c(CI.T$cover,CI.S$cover,CI.X$cover,CI.R$cover,CI.DR$cover,CI.R.fold$cover)
 )
-rownames(model_eval)= c("T","S","X","R","DR")
+rownames(model_eval)= c("T","S","X","R","DR","R.fold")
 print(model_eval)
 
 ## plot
 result = data.frame(tau.true,tau.T = tau.T$tau.pred,tau.S = tau.S$tau.pred,
                     tau.X = tau.X$tau.pred,tau.R = tau.R$tau.pred,
-                    tau.DR = tau.DR$tau.pred)
+                    tau.DR = tau.DR$tau.pred,tau.R.fold = tau.R.fold$tau.pred)
 result.gather = result %>%
   gather(algorithm,tau.pred,-tau.true)
 result.gather %>% 
   ggplot(aes(x = tau.true,y = tau.pred,col = algorithm))+
   geom_point(alpha= 0.5)+
   geom_abline(slope = 1,intercept = 0,col="red")
+
+
 
 
