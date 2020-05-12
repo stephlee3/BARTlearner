@@ -69,6 +69,8 @@ result.gather = result %>%
   # filter(tau.true>20) %>%
   gather(algorithm,tau.pred,-tau.true)
 result.gather %>% 
-  ggplot(aes(x = tau.true,y = tau.pred,col = algorithm))+
-  geom_point(alpha= 0.5)+
-  geom_abline(slope = 1,intercept = 0,col="red")
+  ggplot(aes(x = tau.true,y = tau.pred))+
+  geom_point(alpha= 0.2) + facet_grid(cols = vars(algorithm)) +
+  geom_abline(slope = 1,intercept = 0,col="red") +
+  theme_bw()
+

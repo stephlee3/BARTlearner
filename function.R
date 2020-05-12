@@ -186,7 +186,7 @@ tau.true =  dat$y.1 - dat$y.0
 
 ## MSE
 mse = function(a,hat_a){
-  return(mean(a-hat_a)^2)
+  mean((a-hat_a)^2)
 }
 
 ## 95% CI and cover 
@@ -240,10 +240,10 @@ result = data.frame(tau.true,tau.T = tau.T$tau.pred,tau.S = tau.S$tau.pred,
 result.gather = result %>%
   gather(algorithm,tau.pred,-tau.true)
 result.gather %>% 
-  ggplot(aes(x = tau.true,y = tau.pred,col = algorithm))+
-  geom_point(alpha= 0.5)+
-  geom_abline(slope = 1,intercept = 0,col="red")
-
+  ggplot(aes(x = tau.true,y = tau.pred))+
+  geom_point(alpha= 0.2) + facet_grid(cols = vars(algorithm)) +
+  geom_abline(slope = 1,intercept = 0,col="red") +
+  theme_bw()
 
 
 
